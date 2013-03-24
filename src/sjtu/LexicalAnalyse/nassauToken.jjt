@@ -1,0 +1,737 @@
+options {
+	MULTI=true;
+	NODE_DEFAULT_VOID=false;
+}
+
+PARSER_BEGIN(NassauToken)
+
+/** An Arithmetic Grammar. */
+public class NassauToken {
+	/** Main entry point. */
+	public static void main(String args[]) {
+		System.out.println("Reading from standard input...");
+		NassauToken t = new NassauToken(System.in);
+		try {
+			ASTStart n = t.Start();
+			n.dump("");
+			System.out.println("Thank you.");
+		} catch (Exception e) {
+			System.out.println("Oops.");
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+		}
+	}
+}
+
+PARSER_END(NassauToken)
+
+
+SKIP :
+{
+	" "
+	| "\r"
+	| <"//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
+	| <"/*" (~["*"])* "*" (~["/"] (~["*"])* "*")* "/">
+}
+SPECIAL_TOKEN : /* COMMENTS */
+{
+  <SINGLE_LINE_COMMENT: "//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
+| <FORMAL_COMMENT: "/**" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+| <MULTI_LINE_COMMENT: "/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+
+TOKEN : /* RESERVED WORDS AND LITERALS */
+{
+  < BOOLEAN: "boolean" >
+| < BREAK: "break" >
+| < BYTE: "byte" >
+| < CHAR: "char" >
+| < CLASS: "class" >
+| < CONST: "const" >
+| < CONTINUE: "continue" >
+| < DO: "do" >
+| < DOUBLE: "double" >
+| < ELSE: "else" >
+| < ELIF: "elif">
+| < FALSE: "false" >
+| < FLOAT: "float" >
+| < FOR: "for" >
+| < IF: "if" >
+| < IMPLEMENT: "implement" >
+| < IMPORT: "import" >
+| < INT: "int" >
+| < LONG: "long" >
+| < NEW: "new" >
+| < NULL: "null" >
+| < PACKAGE: "package">
+| < PRIVATE: "private" >
+| < PUBLIC: "public" >
+| < RETURN: "return" >
+| < SHORT: "short" >
+| < STATIC: "static" >
+| < THIS: "this" >
+| < TRUE: "true" >
+| < VOID: "void" >
+| < WHILE: "while" >
+}
+
+TOKEN : /* LITERALS */
+{
+  < INTEGER_LITERAL:
+        <DECIMAL_LITERAL> (["l","L"])?
+      | <HEX_LITERAL> (["l","L"])?
+      | <OCTAL_LITERAL> (["l","L"])?
+  >
+|
+  < #DECIMAL_LITERAL: ["1"-"9"] (["0"-"9"])* >
+|
+  < #HEX_LITERAL: "0" ["x","X"] (["0"-"9","a"-"f","A"-"F"])+ >
+|
+  < #OCTAL_LITERAL: "0" (["0"-"7"])* >
+|
+  < FLOATING_POINT_LITERAL:
+        (["0"-"9"])+ "." (["0"-"9"])* (<EXPONENT>)? (["f","F","d","D"])?
+      | "." (["0"-"9"])+ (<EXPONENT>)? (["f","F","d","D"])?
+      | (["0"-"9"])+ <EXPONENT> (["f","F","d","D"])?
+      | (["0"-"9"])+ (<EXPONENT>)? ["f","F","d","D"]
+  >
+|
+  < #EXPONENT: ["e","E"] (["+","-"])? (["0"-"9"])+ >
+|
+  < CHARACTER_LITERAL:
+      "'"
+      (   (~["'","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'","\""]
+            | ["0"-"7"] ( ["0"-"7"] )?
+            | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+            )
+          )
+      )
+      "'"
+  >
+|
+  < STRING_LITERAL:
+      "\""
+      (   (~["\"","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'","\""]
+            | ["0"-"7"] ( ["0"-"7"] )?
+            | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+            )
+          )
+      )*
+      "\""
+  >
+}
+
+TOKEN : /* IDENTIFIERS */
+{
+  < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+|
+  < #LETTER:
+      [
+       "\u0024",
+       "\u0041"-"\u005a",
+       "\u005f",
+       "\u0061"-"\u007a",
+       "\u00c0"-"\u00d6",
+       "\u00d8"-"\u00f6",
+       "\u00f8"-"\u00ff",
+       "\u0100"-"\u1fff",
+       "\u3040"-"\u318f",
+       "\u3300"-"\u337f",
+       "\u3400"-"\u3d2d",
+       "\u4e00"-"\u9fff",
+       "\uf900"-"\ufaff"
+      ]
+  >
+|
+  < #DIGIT:
+      [
+       "\u0030"-"\u0039",
+       "\u0660"-"\u0669",
+       "\u06f0"-"\u06f9",
+       "\u0966"-"\u096f",
+       "\u09e6"-"\u09ef",
+       "\u0a66"-"\u0a6f",
+       "\u0ae6"-"\u0aef",
+       "\u0b66"-"\u0b6f",
+       "\u0be7"-"\u0bef",
+       "\u0c66"-"\u0c6f",
+       "\u0ce6"-"\u0cef",
+       "\u0d66"-"\u0d6f",
+       "\u0e50"-"\u0e59",
+       "\u0ed0"-"\u0ed9",
+       "\u1040"-"\u1049"
+      ]
+  >
+}
+
+TOKEN : /* SEPARATORS */
+{
+  < LPAREN: "(" >
+| < RPAREN: ")" >
+| < LBRACE: "{" >
+| < RBRACE: "}" >
+| < LBRACKET: "[" >
+| < RBRACKET: "]" >
+| < SEMICOLON: ";" >
+| < COMMA: "," >
+| < DOT: "." >
+}
+
+TOKEN : /* OPERATORS */
+{
+  < ASSIGN: "=" >
+| < GT: ">" >
+| < LT: "<" >
+| < BANG: "!" >
+| < TILDE: "~" >
+| < HOOK: "?" >
+| < COLON: ":" >
+| < EQ: "==" >
+| < LE: "<=" >
+| < GE: ">=" >
+| < NE: "!=" >
+| < SC_OR: "||" >
+| < SC_AND: "&&" >
+| < INCR: "++" >
+| < DECR: "--" >
+| < PLUS: "+" >
+| < MINUS: "-" >
+| < STAR: "*" >
+| < SLASH: "/" >
+| < BIT_AND: "&" >
+| < BIT_OR: "|" >
+| < XOR: "^" >
+| < REM: "%" >
+| < LSHIFT: "<<" >
+| < RSIGNEDSHIFT: ">>" >
+| < RUNSIGNEDSHIFT: ">>>" >
+| < PLUSASSIGN: "+=" >
+| < MINUSASSIGN: "-=" >
+| < STARASSIGN: "*=" >
+| < SLASHASSIGN: "/=" >
+| < ANDASSIGN: "&=" >
+| < ORASSIGN: "|=" >
+| < XORASSIGN: "^=" >
+| < REMASSIGN: "%=" >
+| < LSHIFTASSIGN: "<<=" >
+| < RSIGNEDSHIFTASSIGN: ">>=" >
+| < RUNSIGNEDSHIFTASSIGN: ">>>=" >
+}
+
+ASTStart Start() #Start : {}
+{
+  	(TokenUnit())*
+  	{ return jjtThis; }
+}
+
+void TokenUnit() #void : {}
+{
+	BOOLEAN()
+	| BREAK()
+	| BYTE()
+	| CHAR()
+	| CLASS()
+	| CONST()
+	| CONTINUE()
+	| DO()
+	| DOUBLE()
+	| ELSE()
+	| ELIF()
+	| FALSE()
+	| FLOAT()
+	| FOR()
+	| IF()
+	| IMPLEMENT()
+	| IMPORT()
+	| INT()
+	| LONG()
+	| NEW()
+	| NULL()
+	| PACKAGE()
+	| PRIVATE()
+	| PUBLIC()
+	| RETURN()
+	| SHORT()
+	| STATIC()
+	| THIS()
+	| TRUE()
+	| VOID()
+	| WHILE()
+	| INTEGER_LITERAL()
+	| FLOATING_POINT_LITERAL()
+	| CHARACTER_LITERAL()
+	| STRING_LITERAL()
+	| IDENTIFIER()
+	| LPAREN()
+	| RPAREN()
+	| LBRACE()
+	| RBRACE()
+	| LBRACKET()
+	| RBRACKET()
+	| SEMICOLON()
+	| COMMA()
+	| DOT()
+	| ASSIGN()
+	| GT()
+	| LT()
+	| BANG()
+	| TILDE()
+	| HOOK()
+	| COLON()
+	| EQ()
+	| LE()
+	| GE()
+	| NE()
+	| SC_OR()
+	| SC_AND()
+	| INCR()
+	| DECR()
+	| PLUS()
+	| MINUS()
+	| STAR()
+	| SLASH()
+	| BIT_AND()
+	| BIT_OR()
+	| XOR()
+	| REM()
+	| LSHIFT()
+	| RSIGNEDSHIFT()
+	| RUNSIGNEDSHIFT()
+	| PLUSASSIGN()
+	| MINUSASSIGN()
+	| STARASSIGN()
+	| SLASHASSIGN()
+	| ANDASSIGN()
+	| ORASSIGN()
+	| XORASSIGN()
+	| REMASSIGN()
+	| LSHIFTASSIGN()
+	| RSIGNEDSHIFTASSIGN()
+	| RUNSIGNEDSHIFTASSIGN()
+	| ENTER()
+	| TAB()
+}
+
+void BOOLEAN() : {}
+{
+	<BOOLEAN>
+}
+
+void BREAK() : {}
+{
+	<BREAK>
+}
+
+void BYTE() : {}
+{
+	<BYTE>
+}
+
+void CHAR() : {}
+{
+	<CHAR>
+}
+
+void CLASS() : {}
+{
+	<CLASS>
+}
+
+void CONST() : {}
+{
+	<CONST>
+}
+
+void CONTINUE() : {}
+{
+	<CONTINUE>
+}
+
+void DO() : {}
+{
+	<DO>
+}
+
+void DOUBLE() : {}
+{
+	<DOUBLE>
+}
+
+void ELSE() : {}
+{
+	<ELSE>
+}
+
+void ELIF() : {}
+{
+	<ELIF>
+}
+
+void FALSE() : {}
+{
+	<FALSE>
+}
+
+void FLOAT() : {}
+{
+	<FLOAT>
+}
+
+void FOR() : {}
+{
+	<FOR>
+}
+
+void IF() : {}
+{
+	<IF>
+}
+
+void IMPLEMENT() : {}
+{
+	<IMPLEMENT>
+}
+
+void IMPORT() : {}
+{
+	<IMPORT>
+}
+
+void INT() : {}
+{
+	<INT>
+}
+
+void LONG() : {}
+{
+	<LONG>
+}
+
+void NEW() : {}
+{
+	<NEW>
+}
+
+void NULL() : {}
+{
+	<NULL>
+}
+
+void PACKAGE() : {}
+{
+	<PACKAGE>
+}
+
+void PRIVATE() : {}
+{
+	<PRIVATE>
+}
+
+void PUBLIC() : {}
+{
+	<PUBLIC>
+}
+
+void RETURN() : {}
+{
+	<RETURN>
+}
+
+void SHORT() : {}
+{
+	<SHORT>
+}
+
+void STATIC() : {}
+{
+	<STATIC>
+}
+
+void THIS() : {}
+{
+	<THIS>
+}
+
+void TRUE() : {}
+{
+	<TRUE>
+}
+
+void VOID(): {}
+{
+	<VOID>
+}
+
+void WHILE() : {}
+{
+	<WHILE>
+}
+
+void INTEGER_LITERAL() : {}
+{
+	<INTEGER_LITERAL>
+}
+
+void FLOATING_POINT_LITERAL() : {}
+{
+	<FLOATING_POINT_LITERAL>
+}
+
+void CHARACTER_LITERAL() : {}
+{
+	<CHARACTER_LITERAL>
+}
+
+void STRING_LITERAL() : {}
+{
+	<STRING_LITERAL>
+}
+
+void IDENTIFIER() : {}
+{
+	<IDENTIFIER>
+}
+
+void LPAREN() : {}
+{
+	<LPAREN>
+}
+
+void RPAREN() : {}
+{
+	<RPAREN>
+}
+
+void LBRACE() : {}
+{
+	<LBRACE>
+}
+
+void RBRACE() : {}
+{
+	<RBRACE>
+}
+
+void LBRACKET() : {}
+{
+	<LBRACKET>
+}
+
+void RBRACKET() : {}
+{
+	<RBRACKET>
+}
+
+void SEMICOLON() : {}
+{
+	<SEMICOLON>
+}
+
+void COMMA() : {}
+{
+	<COMMA>
+}
+
+void DOT() : {}
+{
+	<DOT>
+}
+
+void ASSIGN() : {}
+{
+	<ASSIGN>
+}
+
+void GT() : {}
+{
+	<GT>
+}
+
+void LT() : {}
+{
+	<LT>
+}
+
+void BANG() : {}
+{
+	<BANG>
+}
+
+void TILDE() : {}
+{
+	<TILDE>
+}
+
+void HOOK() : {}
+{
+	<HOOK>
+}
+
+void COLON() : {}
+{
+	<COLON>
+}
+
+void EQ() : {}
+{
+	<EQ>
+}
+
+void LE() : {}
+{
+	<LE>
+}
+
+void GE() : {}
+{
+	<GE>
+}
+
+void NE() : {}
+{
+	<NE>
+}
+
+void SC_OR() : {}
+{
+	<SC_OR>
+}
+
+void SC_AND() : {}
+{
+	<SC_AND>
+}
+
+void INCR() : {}
+{
+	<INCR>
+}
+
+void DECR() : {}
+{
+	<DECR>
+}
+
+void PLUS() : {}
+{
+	<PLUS>
+}
+
+void MINUS() : {}
+{
+	<MINUS>
+}
+
+void STAR() : {}
+{
+	<STAR>
+}
+
+void SLASH() : {}
+{
+	<SLASH>
+}
+
+void BIT_AND() : {}
+{
+	<BIT_AND>
+}
+
+void BIT_OR() : {}
+{
+	<BIT_OR>
+}
+
+void XOR() : {}
+{
+	<XOR>
+}
+
+void REM() : {}
+{
+	<REM>
+}
+
+void LSHIFT() : {}
+{
+	<LSHIFT>
+}
+
+void RSIGNEDSHIFT() : {}
+{
+	<RSIGNEDSHIFT>
+}
+
+void RUNSIGNEDSHIFT() : {}
+{
+	<RUNSIGNEDSHIFT>
+}
+
+void PLUSASSIGN() : {}
+{
+	<PLUSASSIGN>
+}
+
+void MINUSASSIGN() : {}
+{
+	<MINUSASSIGN>
+}
+
+void STARASSIGN() : {}
+{
+	<STARASSIGN>
+}
+
+void SLASHASSIGN() : {}
+{
+	<SLASHASSIGN>
+}
+
+void ANDASSIGN() : {}
+{
+	<ANDASSIGN>
+}
+
+void ORASSIGN() : {}
+{
+	<ORASSIGN>
+}
+
+void XORASSIGN() : {}
+{
+	<XORASSIGN>
+}
+
+void REMASSIGN() : {}
+{
+	<REMASSIGN>
+}
+
+void LSHIFTASSIGN() : {}
+{
+	<LSHIFTASSIGN>
+}
+
+void RSIGNEDSHIFTASSIGN() : {}
+{
+	<RSIGNEDSHIFTASSIGN>
+}
+
+void RUNSIGNEDSHIFTASSIGN() : {}
+{
+	<RUNSIGNEDSHIFTASSIGN>
+}
+
+void ENTER() : {}
+{
+	"\n"
+}
+
+void TAB() : {}
+{
+	"\t"
+}

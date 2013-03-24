@@ -1,0 +1,767 @@
+options {
+	MULTI=true;
+	NODE_DEFAULT_VOID=true;
+}
+
+PARSER_BEGIN(Nassau)
+
+/** An Arithmetic Grammar. */
+public class Nassau {
+	/** Main entry point. */
+	public static void main(String args[]) {
+		System.out.println("Reading from standard input...");
+		Nassau t = new Nassau(System.in);
+		try {
+			ASTStart n = t.Start();
+			n.dump("result.aaa");
+			System.out.println("Thank you.");
+		} catch (Exception e) {
+			System.out.println("Oops.");
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+		}
+	}
+}
+
+PARSER_END(Nassau)
+
+
+SKIP :
+{
+	" "
+	| "\t"
+	| "\n"
+	| "\r"
+	| <"//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
+	| <"/*" (~["*"])* "*" (~["/"] (~["*"])* "*")* "/">
+}
+SPECIAL_TOKEN : /* COMMENTS */
+{
+  <SINGLE_LINE_COMMENT: "//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
+| <FORMAL_COMMENT: "/**" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+| <MULTI_LINE_COMMENT: "/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+
+TOKEN : /* RESERVED WORDS AND LITERALS */
+{
+  < BOOLEAN: "boolean" >
+| < BREAK: "break" >
+| < BYTE: "byte" >
+| < CHAR: "char" >
+| < CLASS: "class" >
+| < CONTINUE: "continue" >
+| < DO: "do" >
+| < DOUBLE: "double" >
+| < ELSE: "else" >
+| < ELIF: "elif">
+| < FALSE: "false" >
+| < FLOAT: "float" >
+| < FOR: "for" >
+| < IF: "if" >
+| < IMPLEMENT: "implement" >
+| < IMPORT: "import" >
+| < INT: "int" >
+| < LONG: "long" >
+| < NEW: "new" >
+| < NULL: "null" >
+| < PACKAGE: "package">
+| < PRIVATE: "private" >
+| < PUBLIC: "public" >
+| < RETURN: "return" >
+| < SHORT: "short" >
+| < STATIC: "static" >
+| < THIS: "this" >
+| < TRUE: "true" >
+| < VOID: "void" >
+| < WHILE: "while" >
+}
+
+TOKEN : /* LITERALS */
+{
+  < INTEGER_LITERAL:
+        <DECIMAL_LITERAL> (["l","L"])?
+      | <HEX_LITERAL> (["l","L"])?
+      | <OCTAL_LITERAL> (["l","L"])?
+  >
+|
+  < #DECIMAL_LITERAL: ["1"-"9"] (["0"-"9"])* >
+|
+  < #HEX_LITERAL: "0" ["x","X"] (["0"-"9","a"-"f","A"-"F"])+ >
+|
+  < #OCTAL_LITERAL: "0" (["0"-"7"])* >
+|
+  < FLOATING_POINT_LITERAL:
+        (["0"-"9"])+ "." (["0"-"9"])* (<EXPONENT>)? (["f","F","d","D"])?
+      | "." (["0"-"9"])+ (<EXPONENT>)? (["f","F","d","D"])?
+      | (["0"-"9"])+ <EXPONENT> (["f","F","d","D"])?
+      | (["0"-"9"])+ (<EXPONENT>)? ["f","F","d","D"]
+  >
+|
+  < #EXPONENT: ["e","E"] (["+","-"])? (["0"-"9"])+ >
+|
+  < CHARACTER_LITERAL:
+      "'"
+      (   (~["'","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'","\""]
+            | ["0"-"7"] ( ["0"-"7"] )?
+            | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+            )
+          )
+      )
+      "'"
+  >
+|
+  < STRING_LITERAL:
+      "\""
+      (   (~["\"","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'","\""]
+            | ["0"-"7"] ( ["0"-"7"] )?
+            | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+            )
+          )
+      )*
+      "\""
+  >
+}
+
+TOKEN : /* IDENTIFIERS */
+{
+  < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+|
+  < #LETTER:
+      [
+       "\u0024",
+       "\u0041"-"\u005a",
+       "\u005f",
+       "\u0061"-"\u007a",
+       "\u00c0"-"\u00d6",
+       "\u00d8"-"\u00f6",
+       "\u00f8"-"\u00ff",
+       "\u0100"-"\u1fff",
+       "\u3040"-"\u318f",
+       "\u3300"-"\u337f",
+       "\u3400"-"\u3d2d",
+       "\u4e00"-"\u9fff",
+       "\uf900"-"\ufaff"
+      ]
+  >
+|
+  < #DIGIT:
+      [
+       "\u0030"-"\u0039",
+       "\u0660"-"\u0669",
+       "\u06f0"-"\u06f9",
+       "\u0966"-"\u096f",
+       "\u09e6"-"\u09ef",
+       "\u0a66"-"\u0a6f",
+       "\u0ae6"-"\u0aef",
+       "\u0b66"-"\u0b6f",
+       "\u0be7"-"\u0bef",
+       "\u0c66"-"\u0c6f",
+       "\u0ce6"-"\u0cef",
+       "\u0d66"-"\u0d6f",
+       "\u0e50"-"\u0e59",
+       "\u0ed0"-"\u0ed9",
+       "\u1040"-"\u1049"
+      ]
+  >
+}
+
+TOKEN : /* SEPARATORS */
+{
+  < LPAREN: "(" >
+| < RPAREN: ")" >
+| < LBRACE: "{" >
+| < RBRACE: "}" >
+| < LBRACKET: "[" >
+| < RBRACKET: "]" >
+| < SEMICOLON: ";" >
+| < COMMA: "," >
+| < DOT: "." >
+}
+
+TOKEN : /* OPERATORS */
+{
+  < ASSIGN: "=" >
+| < GT: ">" >
+| < LT: "<" >
+| < BANG: "!" >
+| < TILDE: "~" >
+| < HOOK: "?" >
+| < COLON: ":" >
+| < EQ: "==" >
+| < LE: "<=" >
+| < GE: ">=" >
+| < NE: "!=" >
+| < SC_OR: "||" >
+| < SC_AND: "&&" >
+| < INCR: "++" >
+| < DECR: "--" >
+| < PLUS: "+" >
+| < MINUS: "-" >
+| < STAR: "*" >
+| < SLASH: "/" >
+| < BIT_AND: "&" >
+| < BIT_OR: "|" >
+| < XOR: "^" >
+| < REM: "%" >
+| < LSHIFT: "<<" >
+| < RSIGNEDSHIFT: ">>" >
+| < RUNSIGNEDSHIFT: ">>>" >
+| < PLUSASSIGN: "+=" >
+| < MINUSASSIGN: "-=" >
+| < STARASSIGN: "*=" >
+| < SLASHASSIGN: "/=" >
+| < ANDASSIGN: "&=" >
+| < ORASSIGN: "|=" >
+| < XORASSIGN: "^=" >
+| < REMASSIGN: "%=" >
+| < LSHIFTASSIGN: "<<=" >
+| < RSIGNEDSHIFTASSIGN: ">>=" >
+| < RUNSIGNEDSHIFTASSIGN: ">>>=" >
+}
+
+
+
+/** Main production. */
+ASTStart Start() #Start : {}
+{
+  	CompilationUnit()
+  	{ return jjtThis; }
+}
+
+/** Programs */
+
+void CompilationUnit() : {}
+{
+	PackageDeclaration() 
+	(ImportDeclaration())*
+	(ClassDeclaration())* 
+	(ClassImplement())*
+	<EOF>
+}
+
+/** Declarations */
+void PackageDeclaration() #PackageDeclaration : {}
+{
+	"package" Name() ";"
+}
+
+void ImportDeclaration() #ImportDeclaration : {}
+{
+	"import" Name() [ "." "*" ] ";"
+}
+
+void ClassDeclaration() #ClassDeclaration : {}
+{
+	"class" Identifier() ClassBody()
+	| ";"
+}
+
+void ClassBody() : {}
+{
+	"{" (ClassBodyDeclaration())* "}"
+}
+
+void ClassBodyDeclaration() : {}
+{
+	LOOKAHEAD(2) StaticInitializer()
+	| LOOKAHEAD( [ "public" | "private" ] Identifier() "(") 
+		ConstructorDeclaration()
+	| LOOKAHEAD( [ "public" | "private" ] ResultType() Identifier() "(") 
+		MethodDeclaration()
+	| FieldDeclaration()
+
+}
+
+void StaticInitializer() #StaticInitializer : {}
+{
+	"static" Block()
+}
+
+void ConstructorDeclaration() #ConstructorDeclaration : {}
+{
+	[ConstructorModifier()] ConstructorDeclarator() (ConstructorBody() | ";")
+}
+
+void ConstructorModifier() #ConstructorModifier : {}
+{
+	"public" {jjtThis.jjtSetValue("public");}
+	| "private" {jjtThis.jjtSetValue("private");}
+}
+
+void ConstructorDeclarator() : {}
+{
+	SimpleTypeName() "(" [FormalParameterList()] ")"
+}
+
+void ConstructorBody() #ConstructorBody : {}
+{
+	Block()
+}
+
+void FormalParameterList() : {}
+{
+	FormalParameter() ["," FormalParameterList()]
+}
+
+void FormalParameter() #FormalParameter : {}
+{
+	Type() VariableDeclaratorId()
+}
+
+void FieldDeclaration() #FieldDeclaration : {}
+{
+	[FieldModifier()] Type() VariableDeclarator() ("," VariableDeclarator())* ";"
+}
+
+void FieldModifier() #FieldModifier : {}
+{
+	"public" {jjtThis.jjtSetValue("public");}
+	| "private" {jjtThis.jjtSetValue("private");}
+	| "static"  {jjtThis.jjtSetValue("static");}
+}
+
+void VariableDeclarator() : {}
+{
+	VariableDeclaratorId() ["=" Expression() #AssignmentDeclarator(2)]
+}
+
+void VariableDeclaratorId() : {}
+{
+	Identifier() ("[" Expression() "]" #ArrayDeclarator(2))*
+}
+
+void MethodDeclaration() #MethodDeclaration : {}
+{
+	MethodHeader() [MethodBody()] ";"
+}
+
+void MethodHeader() : {}
+{
+	[MethodModifier()] ResultType() MethodDeclarator()
+}
+
+void MethodModifier() #MethodModifier : {}
+{
+	"public" {jjtThis.jjtSetValue("public");}
+	| "private" {jjtThis.jjtSetValue("private");}
+	| "static"  {jjtThis.jjtSetValue("static");}
+}
+
+void ResultType() : {}
+{
+	Type()
+	| "void" #voidType
+}
+
+void MethodDeclarator() : {}
+{
+	Identifier() "(" [FormalParameterList()] ")"
+}
+
+void MethodBody() #MethodBody : {}
+{
+	Block()
+}
+
+void ClassImplement() #ClassImplement : {}
+{
+	"implement" Identifier() ImplementBody()
+}
+
+void ImplementBody() : {}
+{
+	"{" ( LOOKAHEAD(3) ConstructorImplement() | ClassMethodImplement())* "}"
+}
+
+void ConstructorImplement() #ConstructorImplement : {}
+{
+	[ConstructorModifier()] ConstructorDeclarator() ConstructorBody()
+}
+
+void ClassMethodImplement() #ClassMethodImplement : {}
+{
+	MethodHeader() MethodBody()
+}
+
+/** Block and Commands */
+
+void Block() : {}
+{
+	"{" (BlockStatement())* "}"
+}
+
+void BlockStatement() : {}
+{
+	LOOKAHEAD(3) LocalVariableDeclarationStatement()
+	| Statement()
+}
+
+void LocalVariableDeclarationStatement() #LocalVariableDeclarationStatement : {}
+{
+	Type() VariableDeclarator() ("," VariableDeclarator() )* ";"
+}
+
+void Statement() : {}
+{
+	IfStatement()
+	| ForStatement()
+	| WhileStatement()
+	| DoStatement()
+	| EmptyStatement()
+	| ExpressionStatement() ";"
+	| BreakStatement()
+	| ContinueStatement()
+	| ReturnStatement()
+	| Block()
+}
+
+void EmptyStatement() : {}
+{
+	";"
+}
+
+void ExpressionStatement() : {}
+{
+	PredecrementExpression()
+	| PreincrementExpression()
+	| LOOKAHEAD( Primary() AssignmentOperator() ) Assignment()
+	| PostfixExpression()
+}
+
+void BreakStatement() #BreakStatement : {}
+{
+	"break" ";"
+}
+
+void ContinueStatement() #ContinueStatement : {}
+{
+	"continue" ";"
+}
+
+void ReturnStatement() #ReturnStatement : {}
+{
+	"return" [Expression()] ";"
+}
+
+void IfStatement() #IfStatement : {}
+{
+	"if" "(" Expression() ")" Block() ("elif" "(" Expression() ")" Block())* ["else" Block() #ElseBlock(1)]
+}
+
+void ForStatement() #ForStatement : {}
+{
+	"for" "(" [ForInit()] ";" [Expression()] ";" [ForUpdate()] ")" Block()
+}
+
+void ForInit() #ForInit : {}
+{
+	LOOKAHEAD(3) StatementExpressionList()
+	| LocalVariableDeclaration()
+}
+
+void LocalVariableDeclaration() : {}
+{
+	Type() VariableDeclarator() ( "," VariableDeclarator() )* 
+}
+
+void ForUpdate() #ForUpdate : {}
+{
+	StatementExpressionList()
+}
+
+void StatementExpressionList() : {}
+{
+	Expression() ["," StatementExpressionList()]
+}
+
+void WhileStatement() #WhileStatement : {}
+{
+	"while" "(" Expression() ")" Block()
+}
+
+void DoStatement() #DoStatement : {}
+{
+	"do" Block() "while" "(" Expression() ")"
+}
+
+/** Types*/
+void Type() : {}
+{
+	PrimitiveType() ("[" "]" #ArrayType(1))*
+	| ReferenceType()
+}
+
+void PrimitiveType() : {}
+{
+	NumericType()
+	| BooleanType()
+}
+
+void BooleanType() #Type : {}
+{
+	"boolean" {jjtThis.jjtSetValue("boolean");}
+}
+
+void NumericType() : {}
+{
+	IntegralType()
+	| FloatingPointType()
+}
+
+void IntegralType() #Type : {}
+{
+	"byte" {jjtThis.jjtSetValue("byte");}
+	| "short" {jjtThis.jjtSetValue("short");}
+	| "int" {jjtThis.jjtSetValue("int");}
+	| "long" {jjtThis.jjtSetValue("long");}
+	| "char" {jjtThis.jjtSetValue("char");}
+}
+
+void FloatingPointType() #Type : {}
+{
+	"float" {jjtThis.jjtSetValue("float");}
+	| "double" {jjtThis.jjtSetValue("double");}
+}
+
+void ReferenceType() : {}
+{
+	ClassType() ("[" "]" #ArrayType(1) ) *
+}
+
+void ClassType() #Type : {}
+{
+	Name()
+}
+
+
+/** Expressions */
+
+void Expression() : {}
+{
+	LOOKAHEAD(3) ConditionalOrExpression()
+	| Assignment()
+}
+
+void Assignment() #Assignment : {}
+{
+	Primary() AssignmentOperator() Expression()
+}
+
+void AssignmentOperator() #AssignmentOperator: {}
+{
+	"=" {jjtThis.jjtSetValue("=");}
+	| "*=" {jjtThis.jjtSetValue("*=");}
+	| "/=" {jjtThis.jjtSetValue("/=");}
+	| "%=" {jjtThis.jjtSetValue("%=");}
+	| "+=" {jjtThis.jjtSetValue("+=");}
+	| "-=" {jjtThis.jjtSetValue("==");}
+	| "<<=" {jjtThis.jjtSetValue("<<=");}
+	| ">>=" {jjtThis.jjtSetValue(">>=");}
+	| ">>>="{jjtThis.jjtSetValue(">>>=");}
+	| "&=" {jjtThis.jjtSetValue("&=");}
+	| "^=" {jjtThis.jjtSetValue("^=");}
+	| "|=" {jjtThis.jjtSetValue("!=");}
+}
+
+void ConditionalOrExpression() : {}
+{
+  ConditionalAndExpression() ( "||" ConditionalAndExpression() #ConditonalOrExpression(2))*
+}
+
+void ConditionalAndExpression() : {}
+{
+  InclusiveOrExpression() ( "&&" InclusiveOrExpression() #ConditionalAndExpression(2))*
+}
+
+void InclusiveOrExpression() : {}
+{
+  ExclusiveOrExpression() ( "|" ExclusiveOrExpression() #InclusiveOrExpression(2))*
+}
+
+void ExclusiveOrExpression() : {}
+{
+  AndExpression() ( "^" AndExpression() #ExclusiveOrExpression(2))*
+}
+
+void AndExpression() : {}
+{
+  EqualityExpression() ( "&" EqualityExpression() #AndExpression(2))*
+}
+
+void EqualityExpression() : {}
+{
+  RelationalExpression() 
+  ( "==" RelationalExpression() #EqualityExpression(2)
+  | "!=" RelationalExpression() #NotEqualityExpression(2))*
+}
+
+void RelationalExpression() : {}
+{
+	ShiftExpression() [ "<" RelationalExpression() #LessRelationalExpression(2)
+	| ">" RelationalExpression() #BiggerRelationalExpression(2)
+	| "<=" RelationalExpression() #LessEqRelationalExpression(2)
+	| ">=" RelationalExpression() #BiggerEqRelationalExpression(2)]
+}
+
+void ShiftExpression() : {}
+{
+	AdditiveExpression() 
+	[  "<<" ShiftExpression() #LeftShiftExpression(2)
+	| ">>" ShiftExpression() #RightShiftExpression(2)
+	| ">>>"  ShiftExpression() #LeftThreeShiftExpression(2)]
+}
+
+void AdditiveExpression() : {}
+{
+	MultiplicativeExpression() 
+	[  "+" AdditiveExpression() #PlusAdditiveExpression(2)
+	| "-"  AdditiveExpression() #MinusAdditiveExpression(2)]
+}
+
+void MultiplicativeExpression() : {}
+{
+	UnaryExpression() 
+	[ "*" MultiplicativeExpression() #MultipleMultiplicativeExpression(2)
+	| "/" MultiplicativeExpression() #DivideMultiplicativeExpression(2)
+	| "%" MultiplicativeExpression() #RemainMultiplicativeExpression(2)]
+}
+
+void UnaryExpression() : {}
+{
+	PreincrementExpression()
+	| PredecrementExpression()
+	| UnaryExpressionNotPlusMinus()
+}
+
+void PredecrementExpression() #PredecrementExpression : {}
+{
+	"--" UnaryExpression()
+}
+
+void PreincrementExpression() #PreincrementExpression : {}
+{
+	"++" UnaryExpression()
+}
+
+void UnaryExpressionNotPlusMinus() : {}
+{
+	PostfixExpression()
+	| "~" PostfixExpression() #OppositeExpression(1)
+	| "!" UnaryExpression() #NotExpression(1)
+}
+
+void PostfixExpression() : {}
+{
+	Primary() ["--" #PostdecrementExpression(1) | "++" #PostincrementExpression(1)]
+}
+
+void Primary() : {}
+{
+	PrimaryPrefix() 
+	( LOOKAHEAD(2) "[" Expression() "]" #ArrayPrimarySuffix(2)
+	| "(" ArgumentList() ")" #CallFuntion(2))*
+}
+
+void PrimaryPrefix() : {}
+{
+	Literal()
+	| ThisPrimaryPrefix()
+	| Name()
+	| "(" Expression() #ExpressionPrimaryPrefix(1) ")"
+	| ClassInstanceCreationExpression()
+}
+
+void ThisPrimaryPrefix() #ThisPrimaryPrefix : {}
+{
+	"this" ["." Name()]
+}
+
+void ClassInstanceCreationExpression() #ClassInstanceCreationExpression : {}
+{
+	LOOKAHEAD(2)
+		"new" PrimitiveType() ArrayDimensions()
+	| "new" ClassType() ( "(" ArgumentList() ")" | ArrayDimensions() )
+}
+
+void ArrayDimensions() : {}
+{
+	( LOOKAHEAD(2) "[" Expression() "]" #ArrayDimension(1))+ ( LOOKAHEAD(2) "[" "]" #ArrayDimension)*
+}
+
+void ArgumentList() #ArgumentList : {}
+{
+	[ Expression() ("," Expression() )* ]
+}
+
+/** TOKENS */
+void Name() : {}
+{
+	Identifier() [ LOOKAHEAD(2) "." Name() #FullName(2)]
+}
+
+void SimpleTypeName() : {}
+{
+	Identifier()
+}
+
+
+void Literal() : {}
+{
+	IntegerLiteral()
+	| FloatingPointLiteral()
+	| BooleanLiteral()
+	| CharacterLiteral()
+	| StringLiteral()
+	| NullLiteral()
+}
+
+void IntegerLiteral() #IntegerLiteral: 
+{ Token t;}
+{
+	t=<INTEGER_LITERAL>
+	{jjtThis.jjtSetValue(t.image);}
+}
+
+void FloatingPointLiteral() #FloatingPointLiteral: 
+{ Token t;}
+{
+	t=<FLOATING_POINT_LITERAL>
+	{jjtThis.jjtSetValue(t.image);}
+}
+
+void BooleanLiteral() #BooleanLiteral : {}
+{
+	<TRUE> {jjtThis.jjtSetValue("true");}
+	|<FALSE> {jjtThis.jjtSetValue("false");}
+}
+
+void CharacterLiteral() #CharacterLiteral: 
+{ Token t;}
+{
+	t=<CHARACTER_LITERAL>
+	{jjtThis.jjtSetValue(t.image);}
+}
+
+void StringLiteral() #StringLiteral: 
+{ Token t;}
+{
+	t=<STRING_LITERAL>
+	{jjtThis.jjtSetValue(t.image);}
+}
+
+void NullLiteral() #NullLiteral: {}
+{
+	<NULL>
+}
+
+void Identifier() #Identifier : 
+{ Token t;}
+{
+	t=<IDENTIFIER>
+	{jjtThis.jjtSetValue(t.image);}
+}
+

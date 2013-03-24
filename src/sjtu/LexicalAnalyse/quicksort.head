@@ -1,0 +1,44 @@
+package util;
+
+class quicksort{
+	public int[] quicksort(int[] origin, int n);
+	private int[] result;
+	private void sortHelper(int begin, int end);
+}
+
+implement quicksort{
+		int[] quicksort(int[] origin, int n){
+			result = new int[n];
+			for(int i = 0; i < n; i++){
+				result[i] = origin[i];
+			}
+			sortHelper(0, n);
+			return result;
+		}
+
+		void sortHelper(int begin, int end){
+			int left = begin + 1;
+			int right = end;
+			if(left > right){
+				return;
+			}
+			while(left != right){
+				if(result[begin] <= result[left]){
+					int tmp = result[left];
+					result[left] = result[right];
+					result[right] = tmp;
+					right--;
+				}else{
+					left++;
+				}
+			}
+			if(result.get(begin) <= result.get(left)){
+				left--;
+			}
+			int tmp = result[left];
+			result[left] = result[begin];
+			result[begin] = tmp;
+			sortHelper(begin, left - 1);
+			sortHelper(left + 1, end);
+		}
+}
